@@ -24,5 +24,7 @@ class Settings(BaseSettings):
     dealership_name: str = "Our Dealership"
     dealership_address: str = "123 Main Street"
 
+    default_timezone: str = "America/New_York"
+
 
 settings = Settings()
