@@ -11,6 +11,7 @@ import app.infrastructure.database.models.lead_model  # noqa: F401
 import app.infrastructure.database.models.meeting_model  # noqa: F401
 import app.infrastructure.database.models.reminder_model  # noqa: F401
 import app.infrastructure.database.models.email_log_model  # noqa: F401
+import app.infrastructure.database.models.session_model  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
