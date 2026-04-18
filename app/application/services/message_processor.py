@@ -87,7 +87,7 @@ class MessageProcessingService:
                 meeting_repo = MeetingRepository(db)
                 email_log_repo = EmailLogRepository(db)
                 session_repo = SessionRepository(db)
-                gmail_adapter = GmailAdapter(email_log_repo)
+                gmail_adapter = GmailAdapter()
 
                 lead = await lead_repo.get_or_create(chat_id)
 

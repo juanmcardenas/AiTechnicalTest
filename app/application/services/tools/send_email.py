@@ -38,10 +38,21 @@ def make_send_email_tool(
         car = await inventory_repo.get_car_by_id(car_id)
         if not car:
             return json.dumps({"error": f"Car {car_id} not found"})
+
+        subject = f"Car Specs: {car.year} {car.brand} {car.model}"
         try:
             await email_service.send_car_specs(recipient_email, car)
-            return json.dumps({"success": True, "message": f"Email sent to {recipient_email}"})
         except Exception as e:
+            await email_log_repo.log(
+                lead_id=lead_id, car_id=car.id, recipient=recipient_email,
+                subject=subject, template="car_specs", success=False, error=str(e),
+            )
             return json.dumps({"success": False, "error": str(e)})
+
+        await email_log_repo.log(
+            lead_id=lead_id, car_id=car.id, recipient=recipient_email,
+            subject=subject, template="car_specs", success=True, error=None,
+        )
+        return json.dumps({"success": True, "message": f"Email sent to {recipient_email}"})
 
     return send_email
