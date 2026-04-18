@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select
 from app.domain.entities.lead import Lead, LeadStatus
 from app.domain.repositories.lead_repository import ILeadRepository
@@ -37,7 +37,7 @@ class LeadRepository(BaseRepository, ILeadRepository):
         row.status = lead.status.value if isinstance(lead.status, LeadStatus) else lead.status
         row.preferred_language = lead.preferred_language
         row.last_contacted_at = lead.last_contacted_at
-        row.updated_at = datetime.now()
+        row.updated_at = datetime.now(timezone.utc)
         await self.session.commit()
         await self.session.refresh(row)
         return self._to_domain(row)

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Boolean, Text, ForeignKey
+from sqlalchemy import String, Boolean, Text, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -18,4 +18,4 @@ class EmailLogORM(Base):
     template_used: Mapped[str] = mapped_column(String(100), nullable=False, default="car_specs")
     success: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     error_msg: Mapped[str | None] = mapped_column(Text, nullable=True)
-    sent_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    sent_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

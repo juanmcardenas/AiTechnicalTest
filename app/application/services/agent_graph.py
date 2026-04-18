@@ -1,5 +1,6 @@
 from datetime import date
 from langchain_core.messages import SystemMessage, trim_messages
+from langchain_core.messages.utils import count_tokens_approximately
 from langchain_openai import ChatOpenAI
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
@@ -14,6 +15,14 @@ test drives, or email specs. For anything else respond ONLY with:
 "I can only help with questions about our car inventory, scheduling visits, and
 sending vehicle information. Is there anything car-related I can help you with today?"
 
+TOOL USAGE:
+- Pick the tool that matches the customer's ACTUAL intent. Asking to "schedule a visit"
+  or "book an appointment" means call get_calendar_events then schedule_meeting — NOT send_email.
+  Asking to "send specs" or "email me details" means call send_email — NOT schedule_meeting.
+- If a tool returns an error or a JSON object with "error" or "success": false, tell the
+  customer plainly what failed. NEVER fabricate a successful result when a tool failed.
+- Before scheduling, always call get_calendar_events first to find real available slots.
+
 Current date: {date.today().isoformat()}
 Dealership address: {settings.dealership_address}
 """
@@ -25,7 +34,7 @@ def _build_state_modifier(llm):
             state["messages"],
             max_tokens=6000,
             strategy="last",
-            token_counter=llm,
+            token_counter=count_tokens_approximately,
             include_system=True,
             allow_partial=False,
         )

@@ -61,17 +61,18 @@ class CalendarAdapter(ICalendarService):
         attendee_email: str | None,
         description: str,
     ) -> str:
+        full_description = description
+        if attendee_email:
+            full_description = f"{description}\n\nCustomer email: {attendee_email}"
         event = {
             "summary": title,
-            "description": description,
+            "description": full_description,
             "start": {"dateTime": start.isoformat(), "timeZone": "UTC"},
             "end": {"dateTime": end.isoformat(), "timeZone": "UTC"},
         }
-        if attendee_email:
-            event["attendees"] = [{"email": attendee_email}]
         try:
             created = self._service.events().insert(
-                calendarId=self._calendar_id, body=event, sendUpdates="all"
+                calendarId=self._calendar_id, body=event
             ).execute()
             return created["id"]
         except Exception as e:

@@ -40,7 +40,6 @@ async def test_send_email_sends_specs(mock_inventory_repo, mock_email_service, m
     result = await tool.ainvoke({
         "car_id": "car-1",
         "recipient_email": "buyer@example.com",
-        "lead_id": "lead-1",
     })
     assert "sent" in result.lower() or "success" in result.lower()
     mock_email_service.send_car_specs.assert_called_once()
