@@ -1,6 +1,8 @@
 import json
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
+
 from app.application.services.tools.get_calendar_events import make_get_calendar_events_tool
 
 
@@ -8,16 +10,18 @@ from app.application.services.tools.get_calendar_events import make_get_calendar
 def mock_calendar():
     svc = AsyncMock()
     svc.get_available_slots.return_value = [
-        {"start": "2026-04-20T10:00:00+00:00", "end": "2026-04-20T11:00:00+00:00"},
-        {"start": "2026-04-20T14:00:00+00:00", "end": "2026-04-20T15:00:00+00:00"},
+        {"start": "2026-07-15T14:00:00+00:00", "end": "2026-07-15T15:00:00+00:00"},
+        {"start": "2026-01-15T14:00:00+00:00", "end": "2026-01-15T15:00:00+00:00"},
     ]
     return svc
 
 
-async def test_get_calendar_events_returns_slots(mock_calendar):
+async def test_slots_include_display_field_with_tz(mock_calendar):
     tool = make_get_calendar_events_tool(mock_calendar)
     result = await tool.ainvoke({"days_ahead": 7})
     slots = json.loads(result)
     assert len(slots) == 2
-    assert "start" in slots[0]
+    for s in slots:
+        assert "display" in s
+        assert "EDT" in s["display"] or "EST" in s["display"]
     mock_calendar.get_available_slots.assert_called_once_with(days_ahead=7)
