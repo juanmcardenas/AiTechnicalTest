@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from app.config import settings
@@ -21,9 +22,9 @@ async def get_session() -> AsyncSession:
         yield session
 
 
-async def get_checkpointer() -> AsyncPostgresSaver:
-    checkpointer = AsyncPostgresSaver.from_conn_string(
-        settings.database_url.replace("+asyncpg", "")
-    )
-    await checkpointer.setup()
-    return checkpointer
+@asynccontextmanager
+async def checkpointer_context():
+    conn_str = settings.database_url.replace("postgresql+asyncpg://", "postgresql://")
+    async with AsyncPostgresSaver.from_conn_string(conn_str) as checkpointer:
+        await checkpointer.setup()
+        yield checkpointer

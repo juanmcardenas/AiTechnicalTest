@@ -1,7 +1,8 @@
 from functools import lru_cache
+from fastapi import Request
 from langfuse.callback import CallbackHandler
 from app.config import settings
-from app.infrastructure.database.engine import AsyncSessionFactory, get_checkpointer
+from app.infrastructure.database.engine import AsyncSessionFactory
 from app.infrastructure.events.openai_adapter import OpenAIAdapter
 from app.infrastructure.events.telegram_adapter import TelegramAdapter
 from app.infrastructure.events.calendar_adapter import CalendarAdapter
@@ -9,7 +10,6 @@ from app.infrastructure.events.gmail_adapter import GmailAdapter
 from app.infrastructure.repositories.inventory_repo import InventoryRepository
 from app.infrastructure.repositories.lead_repo import LeadRepository
 from app.infrastructure.repositories.meeting_repo import MeetingRepository
-from app.infrastructure.repositories.reminder_repo import ReminderRepository
 from app.infrastructure.repositories.email_log_repo import EmailLogRepository
 from app.application.services.tools.get_inventory import make_get_inventory_tool
 from app.application.services.tools.get_calendar_events import make_get_calendar_events_tool
@@ -43,12 +43,11 @@ def get_calendar_adapter() -> CalendarAdapter:
     return CalendarAdapter()
 
 
-async def get_message_processor() -> MessageProcessingService:
+async def get_message_processor(request: Request) -> MessageProcessingService:
     session = AsyncSessionFactory()
     inventory_repo = InventoryRepository(session)
     lead_repo = LeadRepository(session)
     meeting_repo = MeetingRepository(session)
-    reminder_repo = ReminderRepository(session)
     email_log_repo = EmailLogRepository(session)
 
     gmail_adapter = GmailAdapter(email_log_repo)
@@ -63,7 +62,7 @@ async def get_message_processor() -> MessageProcessingService:
         make_send_email_tool(inventory_repo, gmail_adapter, email_log_repo),
     ]
 
-    checkpointer = await get_checkpointer()
+    checkpointer = request.app.state.checkpointer
     agent = build_agent_graph(checkpointer=checkpointer, tools=tools)
 
     return MessageProcessingService(
