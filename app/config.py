@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     google_service_account_json: str
     google_calendar_id: str = "primary"
     gmail_sender: str
+    gmail_app_password: str
 
     dealership_name: str = "Our Dealership"
     dealership_address: str = "123 Main Street"

@@ -1,50 +1,40 @@
-import json
-import base64
-from email.mime.text import MIMEText
+import asyncio
+import smtplib
 from email.mime.multipart import MIMEMultipart
-from googleapiclient.discovery import build
-from google.oauth2 import service_account
+from email.mime.text import MIMEText
+
 from app.config import settings
 from app.domain.entities.car import Car
 from app.domain.exceptions import EmailSendError
 from app.domain.repositories.email_log_repository import IEmailLogRepository
 from app.domain.use_cases.email_use_case import IEmailService
 
-SCOPES = ["https://www.googleapis.com/auth/gmail.send"]
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = 587
 
 
 class GmailAdapter(IEmailService):
     def __init__(self, email_log_repo: IEmailLogRepository) -> None:
         self._email_log_repo = email_log_repo
-        sa_info = settings.google_service_account_json
-        if sa_info.endswith(".json"):
-            with open(sa_info) as f:
-                sa_dict = json.load(f)
-        else:
-            sa_dict = json.loads(sa_info)
-        creds = service_account.Credentials.from_service_account_info(
-            sa_dict, scopes=SCOPES, subject=settings.gmail_sender
-        )
-        self._service = build("gmail", "v1", credentials=creds, cache_discovery=False)
 
     async def send_car_specs(self, recipient_email: str, car: Car) -> bool:
         subject = f"Car Specs: {car.year} {car.brand} {car.model}"
         html_body = self._build_html(car)
+
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
         msg["From"] = settings.gmail_sender
         msg["To"] = recipient_email
         msg.attach(MIMEText(html_body, "html"))
-        raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
+
         success = False
-        error = None
+        error: str | None = None
         try:
-            self._service.users().messages().send(
-                userId="me", body={"raw": raw}
-            ).execute()
+            await asyncio.to_thread(self._send_sync, msg.as_string(), recipient_email)
             success = True
         except Exception as e:
             error = str(e)
+
         await self._email_log_repo.log(
             lead_id="unknown",
             car_id=car.id,
@@ -58,8 +48,20 @@ class GmailAdapter(IEmailService):
             raise EmailSendError(error)
         return True
 
+    def _send_sync(self, message_str: str, recipient: str) -> None:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=20) as smtp:
+            smtp.ehlo()
+            smtp.starttls()
+            smtp.ehlo()
+            smtp.login(settings.gmail_sender, settings.gmail_app_password)
+            smtp.sendmail(settings.gmail_sender, [recipient], message_str)
+
     def _build_html(self, car: Car) -> str:
-        image_tag = f'<img src="{car.image_url}" style="max-width:400px"/><br/>' if car.image_url else ""
+        image_tag = (
+            f'<img src="{car.image_url}" style="max-width:400px"/><br/>'
+            if car.image_url
+            else ""
+        )
         return f"""
         <html><body>
         <h2>{car.year} {car.brand} {car.model}</h2>
