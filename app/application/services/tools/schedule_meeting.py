@@ -68,18 +68,25 @@ def make_schedule_meeting_tool(
                 )
             })
 
-        start = parse_local_datetime(scheduled_at)
+        try:
+            start = parse_local_datetime(scheduled_at)
+        except Exception as e:
+            return json.dumps({"success": False, "error": f"Invalid scheduled_at: {e}"})
+
         end = start + timedelta(hours=1)
         location = "Dealership showroom"
         description = f"Car inspection for car {car_id}. Notes: {notes or 'None'}"
 
-        event_id = await calendar_service.create_event(
-            title="Car Inspection",
-            start=start,
-            end=end,
-            attendee_email=attendee_email,
-            description=description,
-        )
+        try:
+            event_id = await calendar_service.create_event(
+                title="Car Inspection",
+                start=start,
+                end=end,
+                attendee_email=attendee_email,
+                description=description,
+            )
+        except Exception as e:
+            return json.dumps({"success": False, "error": f"Calendar error: {e}"})
 
         meeting = Meeting(
             id=str(uuid.uuid4()),
@@ -95,7 +102,10 @@ def make_schedule_meeting_tool(
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),
         )
-        saved_meeting = await meeting_repo.create(meeting)
+        try:
+            saved_meeting = await meeting_repo.create(meeting)
+        except Exception as e:
+            return json.dumps({"success": False, "error": f"Database error: {e}"})
 
         lead.status = LeadStatus.CONVERTED
         await lead_repo.update(lead)
