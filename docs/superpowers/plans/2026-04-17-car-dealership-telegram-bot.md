@@ -145,44 +145,51 @@ alembic.ini
 - [ ] **Step 1: Create `pyproject.toml`**
 
 ```toml
-[tool.poetry]
+[project]
 name = "car-dealership-bot"
 version = "2.0.0"
 description = "Car Dealership Telegram Chatbot"
-authors = []
-packages = [{include = "app"}]
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "fastapi>=0.111,<0.112",
+    "uvicorn[standard]>=0.30,<0.31",
+    "pydantic>=2.7,<3.0",
+    "pydantic-settings>=2.3,<3.0",
+    "sqlalchemy[asyncio]>=2.0,<3.0",
+    "asyncpg>=0.29,<0.30",
+    "alembic>=1.13,<2.0",
+    "langchain>=0.3,<0.4",
+    "langchain-openai>=0.2,<0.3",
+    "langchain-core>=0.3,<0.4",
+    "langgraph>=0.2,<0.3",
+    "langgraph-checkpoint-postgres>=0.1,<0.2",
+    "openai>=1.30,<2.0",
+    "langfuse>=2.36,<3.0",
+    "google-api-python-client>=2.130,<3.0",
+    "google-auth-httplib2>=0.2,<0.3",
+    "google-auth-oauthlib>=1.2,<2.0",
+    "python-telegram-bot>=21.3,<22.0",
+    "httpx>=0.27,<0.28",
+    "python-json-logger>=2.0,<3.0",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-fastapi = "^0.111"
-uvicorn = {extras = ["standard"], version = "^0.30"}
-pydantic = "^2.7"
-pydantic-settings = "^2.3"
-sqlalchemy = {extras = ["asyncio"], version = "^2.0"}
-asyncpg = "^0.29"
-alembic = "^1.13"
-langchain = "^0.3"
-langchain-openai = "^0.2"
-langchain-core = "^0.3"
-langgraph = "^0.2"
-langgraph-checkpoint-postgres = "^0.1"
-openai = "^1.30"
-langfuse = "^2.36"
-google-api-python-client = "^2.130"
-google-auth-httplib2 = "^0.2"
-google-auth-oauthlib = "^1.2"
-python-telegram-bot = "^21.3"
-httpx = "^0.27"
-python-json-logger = "^2.0"
-
-[tool.poetry.dev-dependencies]
-pytest = "^8.2"
-pytest-asyncio = "^0.23"
-pytest-mock = "^3.14"
+[dependency-groups]
+dev = [
+    "pytest>=8.2,<9.0",
+    "pytest-asyncio>=0.23,<0.24",
+    "pytest-mock>=3.14,<4.0",
+]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 ```
 
 - [ ] **Step 2: Create `.env.example`**
@@ -333,13 +340,14 @@ touch app/__init__.py \
   tests/integration/test_webhook/__init__.py
 ```
 
-- [ ] **Step 7: Install dependencies**
+- [ ] **Step 7: Install Python 3.11 and dependencies via uv**
 
 ```bash
-poetry install
+uv python install 3.11
+uv sync
 ```
 
-Expected: dependencies install without error.
+Expected: uv downloads Python 3.11 if needed, creates `.venv/`, installs all dependencies + dev deps. Generates `uv.lock`.
 
 - [ ] **Step 8: Commit**
 
@@ -426,7 +434,7 @@ def test_reminder_creation():
 - [ ] **Step 2: Run tests to confirm they fail**
 
 ```bash
-poetry run pytest tests/unit/test_domain/test_entities.py -v
+uv run pytest tests/unit/test_domain/test_entities.py -v
 ```
 
 Expected: `ModuleNotFoundError` — entities don't exist yet.
@@ -549,7 +557,7 @@ class EmailSendError(Exception):
 - [ ] **Step 8: Run tests — confirm they pass**
 
 ```bash
-poetry run pytest tests/unit/test_domain/test_entities.py -v
+uv run pytest tests/unit/test_domain/test_entities.py -v
 ```
 
 Expected: 5 tests PASS.
@@ -965,7 +973,7 @@ git commit -m "feat: database engine, base, and ORM models"
 - [ ] **Step 1: Initialise Alembic**
 
 ```bash
-poetry run alembic init alembic
+uv run alembic init alembic
 ```
 
 Expected: `alembic/` directory created with `env.py`, `script.py.mako`, and `versions/`.
@@ -1209,7 +1217,7 @@ def downgrade() -> None:
 - [ ] **Step 5: Run migrations against Supabase**
 
 ```bash
-poetry run alembic upgrade head
+uv run alembic upgrade head
 ```
 
 Expected: all 6 tables created + 10 seed vehicles inserted. No errors.
@@ -1960,7 +1968,7 @@ async def test_get_inventory_returns_max_10(mock_repo, sample_car):
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-poetry run pytest tests/unit/test_tools/test_get_inventory.py -v
+uv run pytest tests/unit/test_tools/test_get_inventory.py -v
 ```
 
 Expected: `ModuleNotFoundError`.
@@ -2002,7 +2010,7 @@ def make_get_inventory_tool(repo: IInventoryRepository):
 - [ ] **Step 4: Run test to verify it passes**
 
 ```bash
-poetry run pytest tests/unit/test_tools/test_get_inventory.py -v
+uv run pytest tests/unit/test_tools/test_get_inventory.py -v
 ```
 
 Expected: 3 tests PASS.
@@ -2101,7 +2109,7 @@ async def test_schedule_meeting_creates_event_and_meeting(
 - [ ] **Step 6: Run tests to verify they fail**
 
 ```bash
-poetry run pytest tests/unit/test_tools/test_get_calendar_events.py tests/unit/test_tools/test_schedule_meeting.py -v
+uv run pytest tests/unit/test_tools/test_get_calendar_events.py tests/unit/test_tools/test_schedule_meeting.py -v
 ```
 
 Expected: `ModuleNotFoundError`.
@@ -2288,7 +2296,7 @@ async def test_send_email_car_not_found(mock_inventory_repo, mock_email_service,
 - [ ] **Step 11: Run test to verify it fails**
 
 ```bash
-poetry run pytest tests/unit/test_tools/test_send_email.py -v
+uv run pytest tests/unit/test_tools/test_send_email.py -v
 ```
 
 Expected: `ModuleNotFoundError`.
@@ -2326,7 +2334,7 @@ def make_send_email_tool(
 - [ ] **Step 13: Run all tool tests**
 
 ```bash
-poetry run pytest tests/unit/test_tools/ -v
+uv run pytest tests/unit/test_tools/ -v
 ```
 
 Expected: all tests PASS.
@@ -2383,7 +2391,7 @@ def test_state_modifier_includes_trimmed_messages():
 - [ ] **Step 2: Run test to verify it fails**
 
 ```bash
-poetry run pytest tests/unit/test_agent_graph/ -v
+uv run pytest tests/unit/test_agent_graph/ -v
 ```
 
 Expected: `ModuleNotFoundError`.
@@ -2445,7 +2453,7 @@ def build_agent_graph(checkpointer: AsyncPostgresSaver, tools: list):
 - [ ] **Step 4: Run tests — confirm they pass**
 
 ```bash
-poetry run pytest tests/unit/test_agent_graph/ -v
+uv run pytest tests/unit/test_agent_graph/ -v
 ```
 
 Expected: 2 tests PASS.
@@ -2565,7 +2573,7 @@ async def test_updates_lead_last_contacted(processor, text_update):
 - [ ] **Step 2: Run tests to verify they fail**
 
 ```bash
-poetry run pytest tests/unit/test_message_processor/ -v
+uv run pytest tests/unit/test_message_processor/ -v
 ```
 
 Expected: `ModuleNotFoundError`.
@@ -2650,7 +2658,7 @@ class MessageProcessingService:
 - [ ] **Step 4: Run tests — confirm they pass**
 
 ```bash
-poetry run pytest tests/unit/test_message_processor/ -v
+uv run pytest tests/unit/test_message_processor/ -v
 ```
 
 Expected: 3 tests PASS.
@@ -2753,7 +2761,7 @@ app.include_router(health_router)
 - [ ] **Step 4: Verify server starts**
 
 ```bash
-poetry run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 Expected: server starts, no import errors. Visit `http://localhost:8000/health` in browser — returns `{"status":"ok",...}`. Stop server with Ctrl+C.
@@ -2922,7 +2930,7 @@ def test_health_endpoint_returns_ok():
 - [ ] **Step 5: Run unit tests (all)**
 
 ```bash
-poetry run pytest tests/unit/ -v
+uv run pytest tests/unit/ -v
 ```
 
 Expected: all unit tests PASS.
@@ -2930,7 +2938,7 @@ Expected: all unit tests PASS.
 - [ ] **Step 6: Run integration tests against Supabase**
 
 ```bash
-poetry run pytest tests/integration/test_inventory_repo/ tests/integration/test_lead_repo/ -v
+uv run pytest tests/integration/test_inventory_repo/ tests/integration/test_lead_repo/ -v
 ```
 
 Expected: all integration tests PASS. (Requires valid `DATABASE_URL` in `.env`.)
@@ -2949,7 +2957,7 @@ git commit -m "feat: integration and webhook tests"
 - [ ] **Step 1: Run full test suite**
 
 ```bash
-poetry run pytest -v
+uv run pytest -v
 ```
 
 Expected: all tests PASS (unit + integration).
@@ -2957,7 +2965,7 @@ Expected: all tests PASS (unit + integration).
 - [ ] **Step 2: Start the server**
 
 ```bash
-poetry run uvicorn app.main:app --reload --port 8000
+uv run uvicorn app.main:app --reload --port 8000
 ```
 
 Expected: server starts, webhook set on Telegram, no errors in logs.
